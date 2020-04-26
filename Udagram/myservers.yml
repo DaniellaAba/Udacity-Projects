@@ -4,6 +4,19 @@ Parameters:
   EnvironmentName:
       Description: Single Parameter that we are passing with the env name.
       Type: String
+  ServerImage:
+      Description: The image id for the server.
+      Type: String
+  ServerVolume:
+      Description: The server disk size
+      Type: String
+  MaxiSize:
+    Description: Autoscaling maximum size
+    Type: String
+  MiniSize:
+    Description: Autoscaling minimum size
+    Type: String
+
 Resources:
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
@@ -87,19 +100,20 @@ Resources:
           #!/bin/bash -xe
           sudo apt update -y
           sudo apt install -y apache2
+          sudo apt-get install zip -y
           sudo systemctl start apache2
           sudo systemctl enable apache2
           sudo rm /var/www/html/index.html
-          sudo wget -P /var/www/html https://udagrambucket1.s3.amazonaws.com/index.html
-
-      ImageId: ami-0d1cd67c26f5fca19  # Ubuntu Server 18.04 LTS (HVM), SSD Volume Type
+          sudo wget -P /var/www/html https://udagrambucket1.s3-us-west-2.amazonaws.com/index.html
+         
+      ImageId: !Ref ServerImage  # Ubuntu Server 18.04 LTS (HVM), SSD Volume Type
       SecurityGroups:
        - Ref: WebServerSecGroup
       InstanceType: t2.medium  # 2vCPUs 4GB RAM
       BlockDeviceMappings:
        - DeviceName: "/dev/sdk" 
          Ebs:
-           VolumeSize: '10'
+           VolumeSize: !Ref ServerVolume
            
   WebAppGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -109,8 +123,8 @@ Resources:
             !Sub "${EnvironmentName}-PRIV-NETS"
       LaunchConfigurationName:
         Ref: WebAppLaunchConfig
-      MinSize: '4'
-      MaxSize: '4'
+      MinSize: !Ref MiniSize
+      MaxSize: !Ref MaxiSize
       TargetGroupARNs:
         - Ref: WebAppTargetGroup
 
